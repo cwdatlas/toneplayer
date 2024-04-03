@@ -13,10 +13,7 @@ enum NoteLength {
     WHOLE(1.0f),
     HALF(0.5f),
     QUARTER(0.25f),
-    EIGTH(0.125f),
-    SIXTEENTH(0.0625f),
-    THIRTYSECOND(0.03125f),
-    SIXTYFORTH(0.015625f);
+    EIGTH(0.125f);
 
     private final int timeMs;
 

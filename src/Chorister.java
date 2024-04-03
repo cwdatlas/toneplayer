@@ -5,11 +5,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Chorister implements Runnable{
 
-    private Note note;
+    private final Note note;
     private int length;
     // public so the conductor can get the note to play
     public Baton baton;
-    private SourceDataLine line;
+    private final SourceDataLine line;
     private final AtomicBoolean playing;
     Chorister(Note note, Baton baton, SourceDataLine line, AtomicBoolean playing){
         this.note = note;
