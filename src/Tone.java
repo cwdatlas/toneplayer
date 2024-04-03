@@ -7,12 +7,16 @@ import javax.sound.sampled.SourceDataLine;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 enum NoteLength {
     WHOLE(1.0f),
     HALF(0.5f),
     QUARTER(0.25f),
-    EIGTH(0.125f);
+    EIGTH(0.125f),
+    SIXTEENTH(0.0625f),
+    THIRTYSECOND(0.03125f),
+    SIXTYFORTH(0.015625f);
 
     private final int timeMs;
 
@@ -76,6 +80,7 @@ enum Note {
 
 public class Tone {
     private final AudioFormat af;
+    private final AtomicBoolean playing = new AtomicBoolean();
 
     Tone(String[] args) throws Exception {
         String songFile = "DefaultMaryLamb.txt";
@@ -85,7 +90,6 @@ public class Tone {
                 new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
         final List<BellNote> song = loadSong(songFile);
         // Creates threads that will play the notes
-        createChoristers();
 
         if(song == null){
             System.out.println("Song can't be played due to syntax errors");
@@ -179,22 +183,41 @@ public class Tone {
         try (final SourceDataLine line = AudioSystem.getSourceDataLine(af)) {
             line.open();
             line.start();
-
+            playing.set(true);
+            Map<Note, Chorister> choir = createChoristers(line);
             for (BellNote bn : song) {
-                playNote(line, bn);
+                playNote(choir.get(bn.note), bn);
             }
             line.drain();
+
+            // get the entire choir out of playing loop
+            playing.set(false);
+            for (Chorister i : choir.values()){
+                i.baton.flush();
+            }
         }
     }
-    private void createChoristers(){
-
+    // CreateChoristers creates the entire choir, one note per person
+    private Map<Note, Chorister> createChoristers(SourceDataLine line){
+        Map<Note, Chorister> choir = new HashMap<>();
+        for(Note i: Note.values()){
+            // To be sure that the players
+            choir.put(i,new Chorister(i, new Baton(), line, playing));
+            Thread thread = new Thread(choir.get(i));
+            // I want to make sure that the threads will terminate after this thread has ended
+            thread.setDaemon(true);
+            thread.start();
+        }
+        return choir;
     }
 
-    private void playNote(SourceDataLine line, BellNote bn) {
+    private void playNote(Chorister chorister, BellNote bn) {
         final int ms = Math.min(bn.length.timeMs(), Note.MEASURE_LENGTH_SEC * 1000);
         final int length = Note.SAMPLE_RATE * ms / 1000;
-        line.write(bn.note.sample(), 0, length);
-        line.write(Note.REST.sample(), 0, 50);
+        // This is where the multithreading is:
+        chorister.setTime(length); // set length of note
+        chorister.baton.play(); // play the note and wait for note to finish playing
+
     }
 }
 
