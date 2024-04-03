@@ -6,9 +6,7 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 enum NoteLength {
     WHOLE(1.0f),
@@ -77,71 +75,104 @@ enum Note {
 }
 
 public class Tone {
-
-    // Mary had a little lamb
-
-    private static final List<BellNote> song = new ArrayList<BellNote>() {{
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-        add(new BellNote(Note.F4, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.HALF));
-
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.HALF));
-
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.HALF));
-
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-        add(new BellNote(Note.F4, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-        add(new BellNote(Note.A5, NoteLength.QUARTER));
-        add(new BellNote(Note.G4, NoteLength.QUARTER));
-
-        add(new BellNote(Note.F4, NoteLength.WHOLE));
-    }};
     private final AudioFormat af;
 
-    Tone(AudioFormat af) {
-        this.af = af;
+    Tone(String[] args) throws Exception {
+        String songFile = "DefaultMaryLamb.txt";
+        if(args.length != 0 && args[0] != null)
+            songFile = args[0];
+        this.af =
+                new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
+        final List<BellNote> song = loadSong(songFile);
+        // Creates threads that will play the notes
+        createChoristers();
+
+        if(song == null){
+            System.out.println("Song can't be played due to syntax errors");
+            System.exit(1);
+        }
+        this.playSong(song);
     }
 
-    public static void main(String[] args) throws Exception {
-        final AudioFormat af =
-                new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
-        Tone t = new Tone(af);
-
-        final List<BellNote> song = new ArrayList<>();
-        try {
-            File rawSong = new File("C:/Users/aidan/Desktop/AdvancedSoftwareEngineering/MusicPlayer/src/main/java/org/player/MaryHadALittleLamb.txt");
-            Scanner myReader = new Scanner(rawSong);
-            while (myReader.hasNextLine()) {
-                String[] data = myReader.nextLine().split(" ");
-                song.add(new BellNote(Note.valueOf(data[0]), NoteLength.valueOf(data[1])));
-            }
-            myReader.close();
-        } catch (
-                FileNotFoundException e) {
-            System.out.println("Song file not found!");
-            e.printStackTrace();
-
+    /**
+     * @author Aidan Scott
+     * Validates and reads data from input filename
+     * @param filename
+     * @return null if data is invalid or list of BellNotes if data is valid
+     */
+    private List<BellNote> loadSong(String filename){
+        // If the filename is null, return null and tell user that a file name must be given
+        if (filename == null) {
+            System.out.println("Please give valid file input, file name must be given");
+            return new LinkedList<>();
         }
-        t.playSong(song);
+        // Decide if the input data is for a local file or using a global path
+        if (!filename.contains("/")) {
+            System.out.println("File assumed to be in resources folder");
+            filename = "src/" + filename;
+        } else // If there is a / in the string, then the file we assume its global path
+            System.out.println("File assumed to be file path");
+
+        File gameFile = new File(filename);
+        List<String> errors = new LinkedList<>(); // List that errors are added to
+        List<BellNote> notes = new LinkedList<>();
+        Map<String, String> noteLength = new HashMap<>();
+        noteLength.put("8", "EIGTH");
+        noteLength.put("4", "QUARTER");
+        noteLength.put("2", "HALF");
+        noteLength.put("1", "WHOLE");
+        try (Scanner fileReader = new Scanner(gameFile)){
+            int line = 1;
+            while (fileReader.hasNextLine()) {
+                String[] data = fileReader.nextLine().split(" ");
+                Note note = null;
+                NoteLength length = null;
+                try{
+                    note = Note.valueOf(data[0].toUpperCase());
+                }catch(IllegalArgumentException e){
+                    errors.add("Your stated file has an invalid character of '" + data[0] + "' at line " + line);
+                }
+                if(data.length < 2){
+                    errors.add("Note length not found on line " + line);
+                }else {
+                    String noteL = noteLength.get(data[1]);
+                    if(noteL == null)
+                        noteL = "0";
+                    try {
+                        length = NoteLength.valueOf(noteL);
+                    } catch (IllegalArgumentException e) {
+                        errors.add("your stated file has an invalid character of '" + data[1] + "' at line " + line + " column 2");
+                    }
+                }
+                notes.add(new BellNote(note, length));
+                line++;
+            }
+            if(line == 1){
+                errors.add("Zero Notes found in file. Empty file.");
+            }
+
+        }catch(FileNotFoundException e){
+            System.out.println("Your file was not found, the path we used to find your file was: " + filename);
+            return new LinkedList<>();
+        }
+        if(!errors.isEmpty()){
+            for(String error:errors)
+                System.err.println(error);
+            System.out.println("--------Supported Values for Notes and note length--------");
+            System.out.println("Note Values: " + Arrays.toString(Note.values()));
+            System.out.println("Note Lengths: " + noteLength.keySet());
+            return new LinkedList<>();
+        }
+        return notes;
+    }
+
+    public static NoteLength valueOfLabel(int label) {
+        for (NoteLength e : NoteLength.values()) {
+            if (e.timeMs() == label) {
+                return e;
+            }
+        }
+        return null;
     }
 
     void playSong(List<BellNote> song) throws LineUnavailableException {
@@ -154,6 +185,9 @@ public class Tone {
             }
             line.drain();
         }
+    }
+    private void createChoristers(){
+
     }
 
     private void playNote(SourceDataLine line, BellNote bn) {
