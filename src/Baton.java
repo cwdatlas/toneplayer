@@ -9,6 +9,7 @@ package org.player;
 public class Baton {
     // Used to tell which side is waiting.
     private boolean notePlaying = false;
+
     /**
      * ONLY the conductor (Tone) should call the play method
      * This will notify the chorister and make the conductor 'tone' wait for the chorister to finish playing its note
@@ -26,27 +27,29 @@ public class Baton {
             }
         }
     }
+
     /**
      * ONLY Chorister should call the finished method
      * This will notify the conductor and make the chorister wait for the conductor to say to play another note
      */
-    public synchronized void finished(){
+    public synchronized void finished() {
         // Notifies the waiting Baton to play the note
         notePlaying = false; // sets notePlaying to false, its finished playing the note, so it shouldn't be true!
         this.notify(); // tell the conductor to stop waiting (check previous function for more details, it's the same.
-        while(!notePlaying){
-            try{
+        while (!notePlaying) {
+            try {
                 wait();
             } catch (InterruptedException e) {
                 System.out.println("Finished wait was interrupted");
             }
         }
     }
+
     /**
      * ONLY used when stopping the chorister and exiting program and playing = false
      * Flush is used to stop the chorister waiting, but doesn't make the conductor 'tone' wait
      */
-    public synchronized void flush(){
+    public synchronized void flush() {
         notePlaying = true;
         this.notify();
     }

@@ -81,27 +81,36 @@ public class Tone {
 
     Tone(String[] args) throws Exception {
         String songFile = "DefaultMaryLamb.txt";
-        if(args.length != 0 && args[0] != null)
+        if (args.length != 0 && args[0] != null)
             songFile = args[0];
         this.af =
                 new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
         final List<BellNote> song = loadSong(songFile);
         // Creates threads that will play the notes
         // if the song is empty or null, an error in the song was found
-        if(song == null || song.isEmpty()){
+        if (song == null || song.isEmpty()) {
             System.out.println("Song can't be played due to syntax errors");
             System.exit(1);
         }
         this.playSong(song);
     }
 
+    public static NoteLength valueOfLabel(int label) {
+        for (NoteLength e : NoteLength.values()) {
+            if (e.timeMs() == label) {
+                return e;
+            }
+        }
+        return null;
+    }
+
     /**
-     * @author Aidan Scott
-     * Validates and reads data from input filename
      * @param filename
      * @return null if data is invalid or list of BellNotes if data is valid
+     * @author Aidan Scott
+     * Validates and reads data from input filename
      */
-    private List<BellNote> loadSong(String filename){
+    private List<BellNote> loadSong(String filename) {
         // If the filename is null, return null and tell user that a file name must be given
         if (filename == null) {
             System.out.println("Please give valid file input, file name must be given");
@@ -122,22 +131,22 @@ public class Tone {
         noteLength.put("4", "QUARTER");
         noteLength.put("2", "HALF");
         noteLength.put("1", "WHOLE");
-        try (Scanner fileReader = new Scanner(gameFile)){
+        try (Scanner fileReader = new Scanner(gameFile)) {
             int line = 1;
             while (fileReader.hasNextLine()) {
                 String[] data = fileReader.nextLine().split(" ");
                 Note note = null;
                 NoteLength length = null;
-                try{
+                try {
                     note = Note.valueOf(data[0].toUpperCase());
-                }catch(IllegalArgumentException e){
+                } catch (IllegalArgumentException e) {
                     errors.add("Your stated file has an invalid character of '" + data[0] + "' at line " + line);
                 }
-                if(data.length < 2){
+                if (data.length < 2) {
                     errors.add("Note length not found on line " + line);
-                }else {
+                } else {
                     String noteL = noteLength.get(data[1]);
-                    if(noteL == null)
+                    if (noteL == null)
                         noteL = "0";
                     try {
                         length = NoteLength.valueOf(noteL);
@@ -148,16 +157,16 @@ public class Tone {
                 notes.add(new BellNote(note, length));
                 line++;
             }
-            if(line == 1){
+            if (line == 1) {
                 errors.add("Zero Notes found in file. Empty file.");
             }
 
-        }catch(FileNotFoundException e){
+        } catch (FileNotFoundException e) {
             System.out.println("Your file was not found, the path we used to find your file was: " + filename);
             return new LinkedList<>();
         }
-        if(!errors.isEmpty()){
-            for(String error:errors)
+        if (!errors.isEmpty()) {
+            for (String error : errors)
                 System.err.println(error);
             System.out.println("--------Supported Values for Notes and note length--------");
             System.out.println("Note Values: " + Arrays.toString(Note.values()));
@@ -167,17 +176,9 @@ public class Tone {
         return notes;
     }
 
-    public static NoteLength valueOfLabel(int label) {
-        for (NoteLength e : NoteLength.values()) {
-            if (e.timeMs() == label) {
-                return e;
-            }
-        }
-        return null;
-    }
-
     /**
      * playSong reads over every note that must be played, then calls the chorister related to that note
+     *
      * @param song
      * @throws LineUnavailableException
      */
@@ -194,27 +195,29 @@ public class Tone {
 
             // get the entire choir out of playing loop. Set playing to false first
             playing.set(false);
-            for (Chorister i : choir.values()){
+            for (Chorister i : choir.values()) {
                 i.baton.flush();
                 try {
                     i.thread.join();
                     System.out.println("Terminated thread " + i);
-                }catch (InterruptedException e){
+                } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
         }
     }
+
     /**
      * CreateChoristers creates the entire choir, one note per person
+     *
      * @param line
      * @return
      */
-    private Map<Note, Chorister> createChoristers(SourceDataLine line){
+    private Map<Note, Chorister> createChoristers(SourceDataLine line) {
         Map<Note, Chorister> choir = new HashMap<>();
-        for(Note i: Note.values()){
+        for (Note i : Note.values()) {
             // To be sure that the players
-            choir.put(i,new Chorister(i, new Baton(), line, playing));
+            choir.put(i, new Chorister(i, new Baton(), line, playing));
             final Thread thread = new Thread(choir.get(i));
             choir.get(i).setThread(thread);
             // I want to make sure that the threads will terminate after this thread has ended
@@ -226,6 +229,7 @@ public class Tone {
 
     /**
      * Play note
+     *
      * @param chorister
      * @param bn
      */
