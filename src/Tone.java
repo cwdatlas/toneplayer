@@ -88,7 +88,7 @@ public class Tone {
         final List<BellNote> song = loadSong(songFile);
         // Creates threads that will play the notes
 
-        if(song == null){
+        if(song.isEmpty()){
             System.out.println("Song can't be played due to syntax errors");
             System.exit(1);
         }
@@ -191,6 +191,12 @@ public class Tone {
             playing.set(false);
             for (Chorister i : choir.values()){
                 i.baton.flush();
+                try {
+                    i.thread.join();
+                    System.out.println("Terminated thread " + i);
+                }catch (InterruptedException e){
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
@@ -200,9 +206,10 @@ public class Tone {
         for(Note i: Note.values()){
             // To be sure that the players
             choir.put(i,new Chorister(i, new Baton(), line, playing));
-            Thread thread = new Thread(choir.get(i));
+            final Thread thread = new Thread(choir.get(i));
+            choir.get(i).setThread(thread);
             // I want to make sure that the threads will terminate after this thread has ended
-            thread.setDaemon(true);
+            choir.get(i).thread.setDaemon(true);
             thread.start();
         }
         return choir;
