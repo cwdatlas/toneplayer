@@ -21,10 +21,10 @@ cd toneplayer
 
 Run the program by typing:
 - Replace the words DefaultMaryLamb with the name of the song you want to play. 
-- If it is in the src folder, you can just type the name without the txt extension
-- If it is outside the src folder, you can use the global path without the txt extension
+- If it is in the src folder, you can just type the name
+- If it is outside the src folder, you can use the global path
 ```shell script
-ant run -Dfile=DefaultMaryLamb
+ant run -Dsong="DefaultMaryLamb.txt"
 ```
 
 If you have any issues running your song, make sure to read the error message in detail
