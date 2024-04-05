@@ -3,6 +3,9 @@ This little program is used to play a song!
 Follow the instructions to play a song!
 The song format is note traditional, check the .txt files in the src directory to see examples.
 
+If you would like to see the relation of all the classes and methods, you can look at the TonPlayer.png
+in the top level directory of the project.
+
 ### Installation
 You will need java 17 to run this program
 
