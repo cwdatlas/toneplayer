@@ -188,6 +188,8 @@ public class Tone {
             line.start();
             playing.set(true);
             Map<Note, Chorister> choir = createChoristers(line);
+            // Add space at the start of every song
+            playNote(choir.get(Note.REST), new BellNote(Note.REST, NoteLength.WHOLE) );
             for (BellNote bn : song) {
                 playNote(choir.get(bn.note), bn);
             }
