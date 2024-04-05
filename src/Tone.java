@@ -87,8 +87,8 @@ public class Tone {
                 new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
         final List<BellNote> song = loadSong(songFile);
         // Creates threads that will play the notes
-
-        if(song.isEmpty()){
+        // if the song is empty or null, an error in the song was found
+        if(song == null || song.isEmpty()){
             System.out.println("Song can't be played due to syntax errors");
             System.exit(1);
         }
@@ -176,6 +176,11 @@ public class Tone {
         return null;
     }
 
+    /**
+     * playSong reads over every note that must be played, then calls the chorister related to that note
+     * @param song
+     * @throws LineUnavailableException
+     */
     void playSong(List<BellNote> song) throws LineUnavailableException {
         try (final SourceDataLine line = AudioSystem.getSourceDataLine(af)) {
             line.open();
@@ -187,7 +192,7 @@ public class Tone {
             }
             line.drain();
 
-            // get the entire choir out of playing loop
+            // get the entire choir out of playing loop. Set playing to false first
             playing.set(false);
             for (Chorister i : choir.values()){
                 i.baton.flush();
@@ -200,7 +205,11 @@ public class Tone {
             }
         }
     }
-    // CreateChoristers creates the entire choir, one note per person
+    /**
+     * CreateChoristers creates the entire choir, one note per person
+     * @param line
+     * @return
+     */
     private Map<Note, Chorister> createChoristers(SourceDataLine line){
         Map<Note, Chorister> choir = new HashMap<>();
         for(Note i: Note.values()){
@@ -215,6 +224,11 @@ public class Tone {
         return choir;
     }
 
+    /**
+     * Play note
+     * @param chorister
+     * @param bn
+     */
     private void playNote(Chorister chorister, BellNote bn) {
         final int ms = Math.min(bn.length.timeMs(), Note.MEASURE_LENGTH_SEC * 1000);
         final int length = Note.SAMPLE_RATE * ms / 1000;
